@@ -24,6 +24,7 @@ import com.netflix.graphql.dgs.codegen.filterSkipped
 import com.netflix.graphql.dgs.codegen.shouldSkip
 import com.squareup.kotlinpoet.*
 import graphql.language.*
+import java.time.LocalDateTime
 
 @ExperimentalStdlibApi
 class KotlinDataTypeGenerator(private val config: CodeGenConfig, private val document: Document): AbstractKotlinDataTypeGenerator(config) {
@@ -177,15 +178,19 @@ abstract class AbstractKotlinDataTypeGenerator(private val config: CodeGenConfig
                 is ClassName -> {
                     when(fieldTypeName.simpleName) {
                         STRING.simpleName -> {
-                            if (field.nullable) {
-                                """
-                                "${field.name}:" + "${'$'}{if(${field.name} != null) "\"" else ""}" + ${field.name} + "${'$'}{if(${field.name} != null) "\"" else ""}" + "${if (index < fields.size - 1) "," else ""}" +
-                            """.trimIndent()
-                            } else {
-                                """
-                                "${field.name}:" + "\"" + ${field.name} + "\"" + "${if (index < fields.size - 1) "," else ""}" +
-                            """.trimIndent()
-                            }
+                            quotedString(field, index, fields)
+                        }
+                        "LocalDateTime" -> {
+                            quotedString(field, index, fields)
+                        }
+                        "LocalDate" -> {
+                            quotedString(field, index, fields)
+                        }
+                        "LocalTime" -> {
+                            quotedString(field, index, fields)
+                        }
+                        "OffsetDateTime" -> {
+                            quotedString(field, index, fields)
                         }
                         else -> {
                             defaultString(field, index, fields)
@@ -207,6 +212,18 @@ abstract class AbstractKotlinDataTypeGenerator(private val config: CodeGenConfig
         return """
             "${field.name}:" + ${field.name} + "${if (index < fields.size - 1) "," else ""}" +
             """.trimIndent()
+    }
+
+    private fun quotedString(field: Field, index: Int, fields: List<Field>): String {
+        return if (field.nullable) {
+            """
+            "${field.name}:" + "${'$'}{if(${field.name} != null) "\"" else ""}" + ${field.name} + "${'$'}{if(${field.name} != null) "\"" else ""}" + "${if (index < fields.size - 1) "," else ""}" +
+            """.trimIndent()
+        } else {
+            """
+            "${field.name}:" + "\"" + ${field.name} + "\"" + "${if (index < fields.size - 1) "," else ""}" +
+          """.trimIndent()
+        }
     }
 
     private fun addToStringForListOfStrings(field: Field, kotlinType: TypeSpec.Builder) {
